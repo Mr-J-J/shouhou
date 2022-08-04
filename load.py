@@ -5,7 +5,7 @@
 # 初始化类会自动打开软件
 # api:
 # 改变标题：change_title(hwnd, title):
-# 自动远程：input_account('id', '密码')
+# 自动远程：input_account('id', '密码',title)
 # 获取该远程信息:file_info('id'):
 # 提交数据: submit_data(account,password)/提交数据会自动获取远程信息并且提交/
 
@@ -21,7 +21,6 @@ import requests
 import win32con
 import win32gui
 import os
-from main import find_str
 
 
 
@@ -30,8 +29,7 @@ from main import find_str
 class Remote:
     # 初始化
     # 阻塞运行
-    def __init__(self,title):
-        self.title = title
+    def __init__(self):
         # 远程开始时间结束时间
         self.start_time = 0
         self.end_time = 0
@@ -58,7 +56,7 @@ class Remote:
         win32gui.SetWindowText(hwnd, title)
 
     # 获取该远程信息
-    def file_info(self,title):
+    def file_info(self, title):
         #     读取当前用户目录下AppData\Roaming\RustDesk\config\peers的文件内容
         file_path = os.path.expanduser('~') + "\AppData\Roaming\RustDesk\config\peers" + "\\" + title + '.toml'
         #     如果文件存在，则读取文件内容
@@ -68,12 +66,22 @@ class Remote:
                 # 获取文件内容
                 content = f.read()
                 # 查找指定字符串
-                alias = find_str(content, "alias = '")
-                username = find_str(content, "username = '")
-                hostname = find_str(content, "hostname = '")
+                alias = self.find_str(content, "alias = '")
+                username = self.find_str(content, "username = '")
+                hostname = self.find_str(content, "hostname = '")
             return {'name': alias, 'username': username, 'hostname': hostname}
         else:
             return None
+
+    # 查找指定字符串
+    def find_str(self, content, str):
+        start = content.find(str)
+        if start == -1:
+            return ''
+        end = content.find("'", start + len(str))
+        # 获取指定字符串
+        alias = content[start + len(str):end]
+        return alias
 
     # 上传数据
     def upload_data(self,data):
@@ -85,7 +93,7 @@ class Remote:
 
     # 提交数据
     def submit_data(self,account,password):
-        data = file_info(account)
+        data = self.file_info(account)
         if data is not None:
             time_diff = int(time_diff)
             # now转换成时间戳
@@ -100,7 +108,7 @@ class Remote:
             upload_data(data)
 
     # 自动远程
-    def input_account(self, account, password):
+    def input_account(self, account, password, title):
         # 窗口重新获取焦点
         hwnd = win32gui.FindWindow('H-SMILE-FRAME', None)
         win32gui.SetForegroundWindow(hwnd)
@@ -124,7 +132,7 @@ class Remote:
                     # 如果该控件存在
                     if self.app.connect(handle=account_hwnd).top_window().child_window(title="确认", control_type="Button").exists():
                         # 设置该窗口的title
-                        self.change_title(account_hwnd, self.title)
+                        self.change_title(account_hwnd, title)
                         win32gui.SetForegroundWindow(account_hwnd)
                         pyautogui.typewrite(password)
                         win32gui.SetForegroundWindow(account_hwnd)
@@ -144,6 +152,6 @@ class Remote:
                 break
 
 if __name__ == '__main__':
-    Remote = Remote('a公司')
-    Remote.input_account('1078258647', 'iwvwhi')
-    # print(Remote.file_info('1078258647'))
+    Remote = Remote()
+    # Remote.input_account('1078258647', 'iwvwhi','asdfa')
+    print(Remote.file_info('1078258647'))
