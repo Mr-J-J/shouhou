@@ -8,6 +8,8 @@ import subprocess
 # 查询字符
 def find_str(content,str):
     start = content.find(str)
+    if start == -1:
+        return ''
     end = content.find("'", start + len(str))
     # 获取指定字符串
     alias = content[start + len(str):end]
