@@ -41,9 +41,9 @@ class Remote:
         self.app = pywinauto.Application(backend='uia')
         # 通过句柄绑定
         # 判断同级目录是否存在RustDesk.exe
-        if os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "\RustDesk.exe"):
+        if os.path.exists("RustDesk.exe"):
             self.app.start('RustDesk')
-        if os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "\bent.exe"):
+        if os.path.exists("bent.exe"):
             self.app.start('bent')
         #       获取最顶层窗口
         self.main_window = self.app.top_window()
