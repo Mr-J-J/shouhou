@@ -7,7 +7,7 @@
 # 改变标题：change_title(hwnd, title):
 # 自动远程：input_account('id', '密码',title)
 # 获取该远程信息:file_info('id'):
-# 提交数据: submit_data(account,password)/提交数据会自动获取远程信息并且提交/
+# 提交数据: submit_data()/提交数据会自动获取远程信息并且提交,该函数必须在第一次远程之后使用/
 
 
 
@@ -29,21 +29,29 @@ import os
 class Remote:
     # 初始化
     # 阻塞运行
-    def __init__(self):
+    def __init__(self, gongsi, shouhou):
         # 远程开始时间结束时间
+        self.account = None
         self.start_time = 0
         self.end_time = 0
+        self.gongsi = gongsi
+        self.shouhou = shouhou
         # 脚本运行间隔
         # pyautogui.PAUSE = 0.5
-        # 启动软件
+        # 静默启动软件
         self.app = pywinauto.Application(backend='uia')
         # 通过句柄绑定
-        self.app.start('RustDesk')
+        # 判断同级目录是否存在RustDesk.exe
+        if os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "\RustDesk.exe"):
+            self.app.start('RustDesk')
+        if os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "\bent.exe"):
+            self.app.start('bent')
         #       获取最顶层窗口
         self.main_window = self.app.top_window()
         self.main_window.wait('visible')
         # 最小化窗口
         self.main_window.minimize()
+
         self.hwnd = win32gui.FindWindow('H-SMILE-FRAME', None)
         # 开启保护模式
         pyautogui.FAILSAFE = True
@@ -56,6 +64,11 @@ class Remote:
         win32gui.SetWindowText(hwnd, title)
 
     # 获取该远程信息
+    # @param title account账号
+    # @return 返回远程信息
+    # @param account 账号
+    # @param password 密码
+    # @param name 远程机器备注
     def file_info(self, title):
         #     读取当前用户目录下AppData\Roaming\RustDesk\config\peers的文件内容
         file_path = os.path.expanduser('~') + "\AppData\Roaming\RustDesk\config\peers" + "\\" + title + '.toml'
@@ -88,24 +101,35 @@ class Remote:
         #     发送get请求
         url = 'https://4bd6b408-e7ec-438f-83d2-8cba6cc6b874.bspapp.com/add/add?name=' + data['name'] + '&username=' + \
               data['username'] + '&hostname=' + data['hostname'] + '&time=' + str(data['time']) + '&start_time=' + str(
-            data['start_time']) + '&end_time=' + str(data['end_time']) + '&my_hostname=' + data['my_hostname']
+            data['start_time']) + '&end_time=' + str(data['end_time']) + '&my_hostname=' + data['my_hostname']+'&gongsi='+data['gongsi']+'&shouhou='+data['shouhou']
         requests.get(url)
 
     # 提交数据
-    def submit_data(self,account,password):
-        data = self.file_info(account)
-        if data is not None:
-            time_diff = int(time_diff)
-            # now转换成时间戳
-            now = int(time.mktime(time.strptime(now, '%Y-%m-%d %H:%M:%S')))
-            stat = int(time.mktime(time.strptime(windows_time[window], '%Y-%m-%d %H:%M:%S')))
-            data['time'] = time_diff
-            data['start_time'] = stat
-            data['end_time'] = now
-            hostname = os.popen('hostname').read()
-            data['my_hostname'] = hostname[:-1]
-            # 上传数据
-            upload_data(data)
+    def submit_data(self):
+        try:
+            data = self.file_info(self.account)
+            if data is not None:
+                data['start_time'] = int(self.start_time)
+                data['end_time'] = int(time.time())
+                data['time'] = int(data['end_time'] - data['start_time'])
+                # 获取结束时间
+                hostname = os.popen('hostname').read()
+                data['my_hostname'] = hostname[:-1]
+                data['gongsi'] = self.gongsi
+                data['shouhou'] = self.shouhou
+                print(data)
+                # 上传数据
+                self.upload_data(data)
+        except:
+            print('提交数据失败')
+            return False
+
+    # 结束
+    def end_remote(self):
+        # 如果窗口存在，则关闭窗口
+        if self.main_window.exists():
+            self.main_window.close()
+            self.app.kill()
 
     # 自动远程
     def input_account(self, account, password, title):
@@ -133,6 +157,7 @@ class Remote:
                     if self.app.connect(handle=account_hwnd).top_window().child_window(title="确认", control_type="Button").exists():
                         # 设置该窗口的title
                         self.change_title(account_hwnd, title)
+                        time.sleep(0.3)
                         win32gui.SetForegroundWindow(account_hwnd)
                         pyautogui.typewrite(password)
                         win32gui.SetForegroundWindow(account_hwnd)
@@ -141,6 +166,7 @@ class Remote:
                         # 最小化窗口
                         self.main_window.minimize()
                         if self.start_time == 0:
+                            self.account = account
                             self.start_time = time.time()
                         # 点击确认
                         break
@@ -151,7 +177,7 @@ class Remote:
 
                 break
 
-if __name__ == '__main__':
-    Remote = Remote()
-    # Remote.input_account('1078258647', 'iwvwhi','asdfa')
-    print(Remote.file_info('1078258647'))
+# if __name__ == '__main__':
+    # Remote = Remote('123')
+    # # Remote.input_account('1078258647', 'iwvwhi','asdfa')
+    # print(Remote.file_info('1078258647'))

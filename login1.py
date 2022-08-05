@@ -11,33 +11,37 @@ import os
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
 import load
-
+import images
 
 
 
 class Ui_MainWindow(object):
+    def __init__(self):
+        self.stat = 0
+        self.statf = 0
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(465, 247)
         MainWindow.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
+        # 修改窗口标题
+        self.centralwidget.setWindowTitle('售后系统登陆')
         self.gongsi = QtWidgets.QComboBox(self.centralwidget)
         self.gongsi.setGeometry(QtCore.QRect(121, 33, 211, 31))
         self.gongsi.setEditable(False)
         self.gongsi.setCurrentText("")
         self.gongsi.addItems(init_gongsi_combo())
-        # 选中后执行get_com函数
-        self.gongsi.currentTextChanged.connect(self.get_com)
         self.gongsi.setObjectName("gongsi")
         self.com = QtWidgets.QComboBox(self.centralwidget)
-        self.com.setGeometry(QtCore.QRect(121, 73, 211, 31))
-        self.com.setEditable(False)
-        self.com.setCurrentText("")
-
+        self.com.setGeometry(QtCore.QRect(121, 110, 211, 31))
+        self.com.addItem("请先登录")
+        # 禁用com下拉框
+        self.com.setEnabled(False)
         self.com.setObjectName("com")
         self.shouhou = QtWidgets.QComboBox(self.centralwidget)
-        self.shouhou.setGeometry(QtCore.QRect(121, 110, 211, 31))
+        self.shouhou.setGeometry(QtCore.QRect(121, 73, 211, 31))
         self.shouhou.setCurrentText("")
         self.shouhou.setObjectName("shouhou")
         self.shouhou.addItems(init_shouhou_combo())
@@ -51,16 +55,31 @@ class Ui_MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        # 隐藏关闭右上角按钮
+        MainWindow.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint)
+        # 禁止调节窗口大小
+        MainWindow.setFixedSize(MainWindow.width(), MainWindow.height())
+        # 设置窗口图标
+        MainWindow.setWindowIcon(QtGui.QIcon(':/acn.ico'))
 
         self.retranslateUi(MainWindow)
-        self.close.clicked.connect(MainWindow.close) # type: ignore
+        self.close.clicked.connect(self.closed) # type: ignore
         self.login.clicked.connect(self.login_clicked) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
+    def closed(self):
+        if self.statf == 1:
+            self.Remote.submit_data()
+        if self.stat == 1:
+            self.Remote.end_remote()
+        sys.exit(app.exec_())
+
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "售后登录"))
-        self.login.setText(_translate("MainWindow", "远程"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "远程售后"))
+
+        self.login.setText(_translate("MainWindow", "登录"))
         self.close.setText(_translate("MainWindow", "关闭"))
 
     # 获取设备列表
@@ -76,28 +95,43 @@ class Ui_MainWindow(object):
         self.com.addItem('请选择')
         for i in com:
             self.com.addItem(i['computer_name'])
+
     def login_clicked(self):
         #   判断所有下拉框是否选中
         if self.gongsi.currentText() == '请选择':
             QtWidgets.QMessageBox.warning(self.centralwidget, "提示", "请选择公司")
             return
-        if self.com.currentText() == '请选择':
-            QtWidgets.QMessageBox.warning(self.centralwidget, "提示", "请选择设备")
-            return
         if self.shouhou.currentText() == '请选择':
-            QtWidgets.QMessageBox.warning(self.centralwidget, "提示", "请选择售后")
+            QtWidgets.QMessageBox.warning(self.centralwidget, "提示", "请选择售后人员")
             return
-        # 获取com选中的设备的账号密码
-        text = self.com.currentText()
-        for i in com:
-            if i['computer_name'] == text:
-                id = i['id']
-                password = i['password']
-                break
-        print(id, password)
-        # 初始化Remote
-        Remote = load.Remote().input_account(id, password)
-
+        # 如果状态为0，则将状态改为1，并禁用gongsi和售后下拉框
+        if self.stat == 0:
+            self.centralwidget.setWindowTitle('登陆中...')
+            self.stat = 1
+            self.gongsi.setEnabled(False)
+            self.shouhou.setEnabled(False)
+            self.login.setText("远程")
+            self.com.setEnabled(True)
+            self.get_com()
+            # 初始化
+            self.Remote = load.Remote(self.gongsi.currentText(), self.shouhou.currentText())
+            self.centralwidget.setWindowTitle('售后系统登陆成功')
+        else:
+            if self.com.currentText() == '请选择':
+                QtWidgets.QMessageBox.warning(self.centralwidget, "提示", "请选择设备")
+                return
+            # 获取com选中的设备的账号密码
+            text = self.com.currentText()
+            for i in com:
+                if i['computer_name'] == text:
+                    id = i['id']
+                    password = i['password']
+                    break
+            # 判断状态f
+            if self.statf == 0:
+                self.statf = 1
+            # 远程
+            self.Remote.input_account(id, password, self.com.currentText())
 
 # 初始化请求获取商家信息
 def init_gongsi():
