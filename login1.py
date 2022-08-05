@@ -127,11 +127,9 @@ class Ui_MainWindow(object):
                     id = i['id']
                     password = i['password']
                     break
-            # 判断状态f
-            if self.statf == 0:
-                self.statf = 1
             # 远程
-            self.Remote.input_account(id, password, self.com.currentText())
+            if self.Remote.input_account(id, password, self.com.currentText()) == 1:
+                self.statf = 1
 
 # 初始化请求获取商家信息
 def init_gongsi():

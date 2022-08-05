@@ -13,12 +13,11 @@
 
 
 
-import subprocess
+
 import time
 import pyautogui
 import pywinauto
 import requests
-import win32con
 import win32gui
 import os
 
@@ -152,9 +151,10 @@ class Remote:
             account_hwnd = win32gui.FindWindow('H-SMILE-FRAME', account)
             if account_hwnd != 0:
                 # 等带编辑框组件加载完成
+                self.main_window.minimize()
                 while True:
                     # 如果该控件存在
-                    if self.app.connect(handle=account_hwnd).top_window().child_window(title="确认", control_type="Button").exists():
+                    if self.app.connect(handle=account_hwnd).top_window().child_window(title="取消", control_type="Button").exists():
                         # 设置该窗口的title
                         self.change_title(account_hwnd, title)
                         time.sleep(0.3)
@@ -169,10 +169,13 @@ class Remote:
                             self.account = account
                             self.start_time = time.time()
                         # 点击确认
+                        return 1
                         break
                     else:
                 #         判断是否超过1分钟
                         if time.time() - self.start_time > 60:
+
+                            return 2
                             break
 
                 break
