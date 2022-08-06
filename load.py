@@ -135,7 +135,7 @@ class Remote:
         # 窗口重新获取焦点
         hwnd = win32gui.FindWindow('H-SMILE-FRAME', None)
         win32gui.SetForegroundWindow(hwnd)
-
+        time.sleep(0.4)
         # 按两次tap
         pyautogui.press('tab')
         win32gui.SetForegroundWindow(hwnd)
@@ -157,7 +157,7 @@ class Remote:
                     if self.app.connect(handle=account_hwnd).top_window().child_window(title="取消", control_type="Button").exists():
                         # 设置该窗口的title
                         self.change_title(account_hwnd, title)
-                        time.sleep(0.3)
+                        time.sleep(0.5)
                         win32gui.SetForegroundWindow(account_hwnd)
                         pyautogui.typewrite(password)
                         win32gui.SetForegroundWindow(account_hwnd)
