@@ -10,25 +10,22 @@
 # 提交数据: submit_data()/提交数据会自动获取远程信息并且提交,该函数必须在第一次远程之后使用/
 
 
-
-
-
-
 import time
 import pyautogui
 import pywinauto
 import requests
+import win32api
+import win32con
 import win32gui
 import os
-
-
-
+from ctypes import *
 
 # 远程类
 class Remote:
     # 初始化
     # 阻塞运行
     def __init__(self, gongsi, shouhou):
+        self.lock = windll.LoadLibrary('user32.dll')
         # 远程开始时间结束时间
         self.account = None
         self.start_time = 0
@@ -48,10 +45,9 @@ class Remote:
         #       获取最顶层窗口
         self.main_window = self.app.top_window()
         self.main_window.wait('visible')
-        # 最小化窗口
-        self.main_window.minimize()
-
         self.hwnd = win32gui.FindWindow('H-SMILE-FRAME', None)
+        # hwnd最小化窗口
+        win32gui.ShowWindow(self.hwnd, win32con.SW_MINIMIZE)
         # 开启保护模式
         pyautogui.FAILSAFE = True
         # 改变窗口标题
@@ -96,11 +92,12 @@ class Remote:
         return alias
 
     # 上传数据
-    def upload_data(self,data):
+    def upload_data(self, data):
         #     发送get请求
         url = 'https://4bd6b408-e7ec-438f-83d2-8cba6cc6b874.bspapp.com/add/add?name=' + data['name'] + '&username=' + \
               data['username'] + '&hostname=' + data['hostname'] + '&time=' + str(data['time']) + '&start_time=' + str(
-            data['start_time']) + '&end_time=' + str(data['end_time']) + '&my_hostname=' + data['my_hostname']+'&gongsi='+data['gongsi']+'&shouhou='+data['shouhou']
+            data['start_time']) + '&end_time=' + str(data['end_time']) + '&my_hostname=' + data[
+                  'my_hostname'] + '&gongsi=' + data['gongsi'] + '&shouhou=' + data['shouhou']
         requests.get(url)
 
     # 提交数据
@@ -132,31 +129,59 @@ class Remote:
 
     # 自动远程
     def input_account(self, account, password, title):
-        # 窗口重新获取焦点
+        # 获取任务栏高度坐标
+        task_bar_height = win32api.GetSystemMetrics(win32con.SM_CYCAPTION)
+
+
+        # 使窗口重新获得焦点
+        # self.main_window.set_focus()
         hwnd = win32gui.FindWindow('H-SMILE-FRAME', None)
+        # 发送ALT键
+        pyautogui.press('alt')
+        # 最大化显示hwnd窗口
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
         win32gui.SetForegroundWindow(hwnd)
+        pyautogui.moveTo(10, task_bar_height + 10)
+        # 点击窗口顶部
+        pyautogui.click()
+        # 锁定鼠标
+        self.lock.BlockInput(True);
         time.sleep(0.4)
         # 按两次tap
         pyautogui.press('tab')
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
         win32gui.SetForegroundWindow(hwnd)
         pyautogui.press('tab')
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+        win32gui.SetForegroundWindow(hwnd)
+        pyautogui.press('tab')
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+        win32gui.SetForegroundWindow(hwnd)
+        pyautogui.press('tab')
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
         win32gui.SetForegroundWindow(hwnd)
         pyautogui.typewrite(account)
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
         win32gui.SetForegroundWindow(hwnd)
         # 回车
         pyautogui.press('enter')
+        # 解锁鼠标
+        self.lock.BlockInput(False);
         # 等带输入框出现
         while True:
             # 获取account窗口
             account_hwnd = win32gui.FindWindow('H-SMILE-FRAME', account)
             if account_hwnd != 0:
                 # 等带编辑框组件加载完成
-                self.main_window.minimize()
+                # hwnd最小化窗口
+                win32gui.ShowWindow(self.hwnd, win32con.SW_MINIMIZE)
                 while True:
                     # 如果该控件存在
                     if self.app.connect(handle=account_hwnd).top_window().child_window(title="取消", control_type="Button").exists():
+                        self.lock.BlockInput(True);
                         # 设置该窗口的title
                         self.change_title(account_hwnd, title)
+
                         time.sleep(0.5)
                         win32gui.SetForegroundWindow(account_hwnd)
                         pyautogui.typewrite(password)
@@ -164,23 +189,23 @@ class Remote:
                         pyautogui.press('enter')
                         pyautogui.press('enter')
                         # 最小化窗口
-                        self.main_window.minimize()
+                        win32gui.ShowWindow(self.hwnd, win32con.SW_MINIMIZE)
                         if self.start_time == 0:
                             self.account = account
                             self.start_time = time.time()
                         # 点击确认
+                        self.lock.BlockInput(False);
                         return 1
                         break
                     else:
-                #         判断是否超过1分钟
-                        if time.time() - self.start_time > 60:
-
+                        #         判断是否超过1分钟
+                        if time.time() - self.start_time > 15:
                             return 2
                             break
 
                 break
 
-# if __name__ == '__main__':
-    # Remote = Remote('123')
-    # # Remote.input_account('1078258647', 'iwvwhi','asdfa')
-    # print(Remote.file_info('1078258647'))
+if __name__ == '__main__':
+    Remote = Remote('123','31')
+    Remote.input_account('1078258647', 'iwvwhi','asdfa')
+# print(Remote.file_info('1078258647'))
